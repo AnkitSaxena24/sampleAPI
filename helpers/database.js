@@ -12,7 +12,7 @@ exports.getQuery = async(query,params=[],single=false)=>{
 			password : 	config.mysql_password,
 			database : 	config.mysql_database,
 			port 	 :  config.mysql_port
-		})
+		});
  
 		connection.connect();
 		

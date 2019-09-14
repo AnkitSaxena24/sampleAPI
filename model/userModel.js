@@ -22,8 +22,8 @@ exports.addUserData = async(data) => {
 }
 
 exports.getSingleUserData = async(data) => {
-	let id = data.id;
-	let query = 'SELECT first_name, last_name, age, email FROM user_data WHERE id = ?';
+	let id = data;
+	let query = 'SELECT id, first_name, last_name, age, email FROM user_data WHERE id = ?';
 
 	let result = await DB.getQuery(query, id);
 

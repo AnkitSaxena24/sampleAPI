@@ -1,6 +1,7 @@
 const userModel = require(__dirname + '/../model/userModel');
 
-exports.getUser = async(req, res) => {
+
+var getUser = async(req, res) => {
     try {
         let get_users = await userModel.getUserData(req.query);
         res.json(get_users);
@@ -13,10 +14,9 @@ exports.getUser = async(req, res) => {
     }
 }
 
-exports.addUser = async(req, res) => {
+var addUser = async(req, res) => {
     try {
-        
-        let result = await userModel.addUserData(req.body);
+        let result = await userModel.addUserData(req.body.data);
         res.json({
             success: 1,
             status: 200,
@@ -31,9 +31,9 @@ exports.addUser = async(req, res) => {
     }
 }
 
-exports.getSingleUser = async(req, res) => {
+var getSingleUser = async(req, res) => {
     try {
-        let result = await userModel.getSingleUserData(req.body);
+        let result = await userModel.getSingleUserData(req.params.id);
 
         if(result) {
             res.json(result);
@@ -46,7 +46,7 @@ exports.getSingleUser = async(req, res) => {
     }
 }
 
-exports.updateUser = async(req, res) => {
+var updateUser = async(req, res) => {
     try {
         let result = await userModel.updateUserData(req.body);
 
@@ -61,7 +61,7 @@ exports.updateUser = async(req, res) => {
     }
 }
 
-exports.deleteUser = async(req, res) => {
+var deleteUser = async(req, res) => {
     try {
         let result = await userModel.deleteUserData(req.body);
         
@@ -76,6 +76,11 @@ exports.deleteUser = async(req, res) => {
     }
 }
 
-
-
+module.exports = {
+    getUser,
+    addUser,
+    getSingleUser,
+    updateUser,
+    deleteUser
+}
 

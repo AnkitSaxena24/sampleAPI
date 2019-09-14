@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
+import axios from 'axios';
 import Paper from '@material-ui/core/Paper';
 import TextField from '@material-ui/core/TextField';
 import Table from '@material-ui/core/Table';
@@ -15,6 +16,9 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Slide from '@material-ui/core/Slide';
+import Chip from '@material-ui/core/Chip';
+import 'react-notifications/lib/notifications.css';
+import {NotificationContainer, NotificationManager} from 'react-notifications';
 
 const styles = theme => ({
     root: {
@@ -58,39 +62,102 @@ class App extends Component {
         email: '',
         user_data: [],
         edit_user_data: [],
-        editDialogState: false
+        editDialogState: false,
+        message: '',
+        user_count: '',
+        id: ''
     }
 
     componentDidMount() {
         this.getData();
-    } 
-
-    getData = () => {
-        fetch('http://localhost:4007/users').then(results => {
-            return results.json();
-        }).then(data => {
-            this.setState({user_data: data['data']});
-        });
     }
 
-    getSingleUserData = () => {
-        
+    //Getting the list of users
+    getData = async () => {
+        let result = await axios.get('http://localhost:4007/users');
+        let user_count = result['data']['data'].length > 0 ? result['data']['data'].length : 0;
+        this.setState({user_data: result['data']['data'], user_count: user_count});
     }
 
     handleChange = name => event => {
         this.setState({[name]: event.target.value});
     }
 
-    handleDelete = (id) => {
-        fetch(`http://localhost:4007/delete-user/${id}`) 
+    handleSubmit = () => {
+        const { first_name, last_name, age, email } = this.state;
+        const add_user_data = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "age": age,
+            "email": email
+        }
+
+        this.addUser(add_user_data);
     }
 
+    
+
+    //Adding a user
+    addUser = async (data) => {
+        let add_data = await axios.post('http://localhost:4007/add-user/',{data});
+
+        if(add_data['data']['success'] === 1 && add_data['data']['status'] === 200) {
+            NotificationManager.success('User Added', 'User Added Successfully', 3000);
+            this.setState({first_name: '', last_name: '', email: '', age:''});
+        } else {
+            alert('Something went wrong');
+        }
+    }
+
+    handleEdit = () => {
+        const { first_name, last_name, age, email,id } = this.state;
+        const edit_user_data = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "age": age,
+            "email": email,
+            "id": id
+        }
+
+        this.editUser(edit_user_data);
+    }
+
+    editUser = async (data) => {
+        let edit_data = await axios.post(`http://localhost:4007/add-user/update-user`,{data});
+        
+        if(edit_data['data']['success'] === 1 && edit_data['data']['status'] === 200) {
+            NotificationManager.success('User Editted', 'User Editted Successfully', 3000);
+        } else {
+            alert('Something went wrong');
+        }
+    }
+
+    //Deleting the a single user
+    handleDelete = async (id) => {
+        let delete_data = await axios.delete('http://localhost:4007/delete-user/',{data: {id: id}});
+        if(delete_data['data']['status'] === 200) {
+            return NotificationManager.success(delete_data['data']['message'], 'User Deleted', 3000);
+        } else {
+            return NotificationManager.error('Something went wrong while deleting user');
+        }
+    }
+
+    //Reseting the form
     handleReset = () => {
         this.setState({first_name: '', last_name: '', email: '', age:''});
     }
 
-    handleDialogOpen = () => {
-        this.setState({editDialogState: true});
+    handleDialogOpen = async (id) => {
+        let user_data = await axios.get(`http://localhost:4007/user-data/${id}`);
+        const final_data = user_data['data']['data'][0];
+
+        this.setState({editDialogState: true, 
+            first_name:final_data['first_name'],
+            last_name: final_data['last_name'],
+            age: final_data['age'],
+            email: final_data['email'],
+            id: id
+        });
     }
 
     handleDialogClose = () => {
@@ -99,7 +166,7 @@ class App extends Component {
 
     render() {
         const { classes } = this.props;
-        const { first_name, last_name, age, email, user_data, editDialogState } = this.state;
+        const { first_name, last_name, age, email, user_data, editDialogState, message, user_count, id } = this.state;
 
         let final_data = [];
 
@@ -111,12 +178,18 @@ class App extends Component {
                         <TableCell>{data['last_name']}</TableCell>
                         <TableCell>{data['age']}</TableCell>
                         <TableCell>{data['email']}</TableCell>
-                        <TableCell><Button className="mr-2" variant="contained" color="primary" onClick={this.handleDialogOpen}>EDIT</Button>
+                        <TableCell><Button className="mr-2" variant="contained" color="primary" onClick={()=>this.handleDialogOpen(data['id'])}>EDIT</Button>
                             <Button variant="contained" color="secondary" onClick={()=>this.handleDelete(data['id'])}>DELETE</Button>
                         </TableCell>
                     </TableRow>
                 )
             });
+        } else {
+            final_data.push(
+                <TableRow>
+                    No User found
+                </TableRow>
+            );
         }
 
         return (
@@ -165,7 +238,7 @@ class App extends Component {
                         <div className="row">
                             <div className="col-md-12">
                                 <div className="col-md-6">
-                                    <Button className="mr-3" variant="contained" color="secondary">SUBMIT</Button>
+                                    <Button className="mr-3" variant="contained" color="secondary" onClick={()=>this.handleSubmit()}>SUBMIT</Button>
                                     <Button className="mr-3" variant="contained" color="primary" onClick={()=>this.handleReset()}>RESET</Button>
                                 </div>
                             </div>
@@ -174,6 +247,10 @@ class App extends Component {
                 </div>
                 <div className="container">
                     <Paper className={classes.root} elevation={1}>
+                        <Chip
+                            label = {`No. of users ${user_count}`}
+                            color="secondary"
+                        />
                         <Table className={classes.table}>
                             <TableHead>
                                 <TableRow>
@@ -201,34 +278,39 @@ class App extends Component {
                             <DialogContent>
                                 Change the fields which you want to change and then click on submit
                                 <form className={classes.container} noValidate autoComplete="off">
-                                <TextField
-                                    label="First Name"
-                                    className={classes.textField}
-                                />
+                                    <TextField
+                                        label="First Name"
+                                        className={classes.textField}
+                                        value={first_name}
+                                    />
 
-                                <TextField
-                                    label="Last Name"
-                                    className={classes.textField}
-                                />
+                                    <TextField
+                                        label="Last Name"
+                                        className={classes.textField}
+                                        value={last_name}
+                                    />
 
-                                <TextField
-                                    label="Age"
-                                    className={classes.textField}
-                                />
+                                    <TextField
+                                        label="Age"
+                                        className={classes.textField}
+                                        value={age}
+                                    />
 
-                                <TextField
-                                    label="Email"
-                                    className={classes.textField}
-                                />
+                                    <TextField
+                                        label="Email"
+                                        className={classes.textField}
+                                        value={email}
+                                    />
                                 </form>
                             </DialogContent>
                             <DialogActions>
-                                <Button variant="contained" color="secondary">Submit</Button>
+                                <Button variant="contained" color="secondary" onClick={()=>this.handleEdit()}>Submit</Button>
                                 <Button variant="contained" onClick={this.handleDialogClose}>Cancel</Button>
                             </DialogActions>
                         </Dialog>
                     </div>
                 </div>
+                <NotificationContainer />
             </div>
         );
     }
